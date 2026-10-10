@@ -1,0 +1,110 @@
+# ─────────────────────────────────────────────────────────────────────
+# TESSERA — .gitignore
+# ─────────────────────────────────────────────────────────────────────
+
+# ── Environment & Secrets ─────────────────────────────────────────────
+.env
+.env.local
+.env.*.local
+
+# Private keys and certificates containing real credentials
+*.pem
+*.key
+*.p12
+*.pfx
+# Allow example/template TLS files checked in intentionally:
+!**/tls-example/**
+!**/*.example.pem
+
+# ── Node.js ───────────────────────────────────────────────────────────
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+.pnp
+.pnp.js
+
+# Keep lockfiles (do NOT ignore these)
+# package-lock.json  ← kept
+# yarn.lock          ← kept
+# pnpm-lock.yaml     ← kept
+
+# ── Build Outputs ─────────────────────────────────────────────────────
+dist/
+build/
+out/
+.next/
+.nuxt/
+.vite/
+
+# ── TypeScript ────────────────────────────────────────────────────────
+*.tsbuildinfo
+
+# ── Go / Chaincode ────────────────────────────────────────────────────
+vendor/
+*.exe
+*.exe~
+*.test
+*.out
+/bin/
+
+# ── Test Coverage ─────────────────────────────────────────────────────
+coverage/
+*.lcov
+.nyc_output/
+jest-results/
+test-results/
+
+# ── Hyperledger Fabric Artifacts ──────────────────────────────────────
+# Generated crypto material and channel artifacts (not source configs)
+infrastructure/fabric/crypto-config/
+infrastructure/fabric/channel-artifacts/
+infrastructure/fabric/organizations/
+
+# Wallet identity files (contain private key material)
+wallet/
+**/wallet/
+
+# ── MinIO Local Data ──────────────────────────────────────────────────
+minio-data/
+.minio/
+
+# ── Docker ────────────────────────────────────────────────────────────
+# Local Docker volume mounts (not source configs)
+docker-volumes/
+
+# ── OS Generated ──────────────────────────────────────────────────────
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+desktop.ini
+
+# ── IDEs & Editors ────────────────────────────────────────────────────
+.idea/
+*.iml
+.vscode/settings.json
+*.swp
+*.swo
+*~
+
+# Keep shared VSCode workspace settings:
+!.vscode/extensions.json
+!.vscode/launch.json
+!.vscode/tasks.json
+
+# ── Logs & Temporary Files ────────────────────────────────────────────
+logs/
+*.log
+tmp/
+temp/
+.cache/
+
+# ── Miscellaneous ─────────────────────────────────────────────────────
+.terraform/
+*.tfstate
+*.tfstate.backup
