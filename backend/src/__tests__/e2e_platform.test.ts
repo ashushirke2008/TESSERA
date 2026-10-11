@@ -14,7 +14,7 @@ describe('TESSERA End-to-End Platform Integration Suite', () => {
     it('should authenticate admin and issue valid JWT token with full permissions', async () => {
       const res = await request(app)
         .post('/api/auth/login')
-        .send({ email: 'admin@tessera.network' });
+        .send({ email: 'admin@tessera.network', password: 'TesseraDemo@2026' });
 
       expect(res.status).toBe(200);
       expect(res.body.success).toBe(true);
@@ -26,7 +26,7 @@ describe('TESSERA End-to-End Platform Integration Suite', () => {
     it('should authenticate registrar and issue valid JWT with registrar permissions', async () => {
       const res = await request(app)
         .post('/api/auth/login')
-        .send({ email: 'registrar@org1.example.com' });
+        .send({ email: 'registrar@org1.example.com', password: 'TesseraDemo@2026' });
 
       expect(res.status).toBe(200);
       expect(res.body.data.user.role).toBe('ISSUER_REGISTRAR');
@@ -37,7 +37,7 @@ describe('TESSERA End-to-End Platform Integration Suite', () => {
     it('should authenticate verifier and issue valid JWT with valuation permissions', async () => {
       const res = await request(app)
         .post('/api/auth/login')
-        .send({ email: 'verifier@inspection.service' });
+        .send({ email: 'verifier@inspection.service', password: 'TesseraDemo@2026' });
 
       expect(res.status).toBe(200);
       expect(res.body.data.user.role).toBe('VERIFIER');
@@ -48,7 +48,7 @@ describe('TESSERA End-to-End Platform Integration Suite', () => {
     it('should authenticate compliance officer and issue valid JWT', async () => {
       const res = await request(app)
         .post('/api/auth/login')
-        .send({ email: 'compliance@governance.org' });
+        .send({ email: 'compliance@governance.org', password: 'TesseraDemo@2026' });
 
       expect(res.status).toBe(200);
       expect(res.body.data.user.role).toBe('COMPLIANCE_OFFICER');
@@ -58,7 +58,7 @@ describe('TESSERA End-to-End Platform Integration Suite', () => {
     it('should authenticate investor buyer and issue valid JWT', async () => {
       const res = await request(app)
         .post('/api/auth/login')
-        .send({ email: 'investor@capital.fund' });
+        .send({ email: 'investor@capital.fund', password: 'TesseraDemo@2026' });
 
       expect(res.status).toBe(200);
       expect(res.body.data.user.role).toBe('INVESTOR_BUYER');

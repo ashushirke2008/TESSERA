@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   Boxes,
   FileCheck2,
@@ -9,9 +9,12 @@ import {
   Cpu,
   Layers,
   ExternalLink,
+  Info,
+  RefreshCw,
 } from 'lucide-react';
-import { SystemHealthData, SystemReadinessData, NavPage } from '../types';
+import { SystemHealthData, SystemReadinessData, NavPage, DashboardStats } from '../types';
 import { StatusBadge } from '../components/common/StatusBadge';
+import { fetchDashboardStats } from '../services/api';
 
 interface DashboardProps {
   health: SystemHealthData;
@@ -20,6 +23,29 @@ interface DashboardProps {
 }
 
 export const Dashboard: React.FC<DashboardProps> = ({ health, readiness, onNavigate }) => {
+  const [stats, setStats] = useState<DashboardStats | null>(null);
+  const [loading, setLoading] = useState<boolean>(true);
+  const [error, setError] = useState<string | null>(null);
+
+  const loadStats = async () => {
+    setLoading(true);
+    setError(null);
+    try {
+      const data = await fetchDashboardStats();
+      setStats(data);
+    } catch (err: unknown) {
+      setError((err as Error).message || 'Failed to fetch dashboard metrics');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    loadStats();
+    const interval = setInterval(loadStats, 15000);
+    return () => clearInterval(interval);
+  }, []);
+
   return (
     <div>
       <div className="page-header">
@@ -41,8 +67,45 @@ export const Dashboard: React.FC<DashboardProps> = ({ health, readiness, onNavig
         </div>
       </div>
 
+      {/* Honest Data Source Attribution Banner */}
+      {stats?.isDemonstrationData && (
+        <div
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            padding: '0.75rem 1.25rem',
+            borderRadius: 8,
+            background: 'rgba(59, 130, 246, 0.1)',
+            border: '1px solid rgba(59, 130, 246, 0.25)',
+            color: 'var(--text-secondary)',
+            fontSize: '0.8rem',
+            marginBottom: '1.5rem',
+          }}
+        >
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+            <Info size={16} style={{ color: 'var(--accent-blue)', flexShrink: 0 }} />
+            <span>
+              <strong style={{ color: '#ffffff' }}>DEMONSTRATION FIXTURE DATA ACTIVE:</strong> Metrics reflect
+              authoritative records from the backend ledger engine (including canonical seed assets).
+              Production Hyperledger Fabric Gateway & CouchDB network connection is pending.
+            </span>
+          </div>
+          <button
+            className="btn btn-secondary"
+            onClick={loadStats}
+            title="Refresh Ledger Metrics"
+            style={{ padding: '0.25rem 0.5rem', fontSize: '0.75rem', flexShrink: 0 }}
+          >
+            <RefreshCw size={12} className={loading ? 'spin' : ''} />
+            <span>Refresh</span>
+          </button>
+        </div>
+      )}
+
       {/* KPI Cards */}
       <div className="stats-grid">
+        {/* Card 1: Registered Assets */}
         <div className="stat-card">
           <div className="stat-header">
             <span className="stat-title">Registered Assets</span>
@@ -50,12 +113,23 @@ export const Dashboard: React.FC<DashboardProps> = ({ health, readiness, onNavig
               <Boxes size={18} />
             </div>
           </div>
-          <div className="stat-value">0</div>
+          <div className="stat-value">
+            {loading && !stats ? '...' : error ? '—' : stats?.registeredAssets ?? 0}
+          </div>
           <div className="stat-subtext">
-            <span>Stage 1 Chaincode ledger pending</span>
+            <span>
+              {loading && !stats
+                ? 'Querying ledger state...'
+                : error
+                ? `Query error: ${error}`
+                : stats?.isDemonstrationData
+                ? 'Demonstration assets active'
+                : 'Confirmed Fabric world-state'}
+            </span>
           </div>
         </div>
 
+        {/* Card 2: Pending Claims */}
         <div className="stat-card">
           <div className="stat-header">
             <span className="stat-title">Pending Claims</span>
@@ -63,12 +137,21 @@ export const Dashboard: React.FC<DashboardProps> = ({ health, readiness, onNavig
               <FileCheck2 size={18} />
             </div>
           </div>
-          <div className="stat-value">0</div>
+          <div className="stat-value">
+            {loading && !stats ? '...' : error ? '—' : stats?.pendingClaims ?? 0}
+          </div>
           <div className="stat-subtext">
-            <span>Stage 2 External adapters pending</span>
+            <span>
+              {loading && !stats
+                ? 'Querying claims...'
+                : stats?.pendingClaims === 0
+                ? 'No claims awaiting review'
+                : `${stats?.pendingClaims} claims in verification queue`}
+            </span>
           </div>
         </div>
 
+        {/* Card 3: Approvals Queue */}
         <div className="stat-card">
           <div className="stat-header">
             <span className="stat-title">Approvals Queue</span>
@@ -76,12 +159,21 @@ export const Dashboard: React.FC<DashboardProps> = ({ health, readiness, onNavig
               <CheckCheck size={18} />
             </div>
           </div>
-          <div className="stat-value">0</div>
+          <div className="stat-value">
+            {loading && !stats ? '...' : error ? '—' : stats?.approvalsQueue ?? 0}
+          </div>
           <div className="stat-subtext">
-            <span>Multi-party approval stage</span>
+            <span>
+              {loading && !stats
+                ? 'Querying approvals...'
+                : stats?.approvalsQueue === 0
+                ? 'No pending approvals'
+                : `${stats?.approvalsQueue} assets pending approval`}
+            </span>
           </div>
         </div>
 
+        {/* Card 4: Tokenized Holdings */}
         <div className="stat-card">
           <div className="stat-header">
             <span className="stat-title">Tokenized Holdings</span>
@@ -89,9 +181,17 @@ export const Dashboard: React.FC<DashboardProps> = ({ health, readiness, onNavig
               <Coins size={18} />
             </div>
           </div>
-          <div className="stat-value">0</div>
+          <div className="stat-value">
+            {loading && !stats ? '...' : error ? '—' : stats?.tokenizedHoldings ?? 0}
+          </div>
           <div className="stat-subtext">
-            <span>Stage 3 Tokenization pending</span>
+            <span>
+              {loading && !stats
+                ? 'Querying tokens...'
+                : stats?.tokenizedHoldings === 0
+                ? 'No fractional tokens issued'
+                : `${stats?.tokenizedHoldings} active token issues`}
+            </span>
           </div>
         </div>
       </div>
@@ -129,7 +229,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ health, readiness, onNavig
                 <StatusBadge status={readiness.dependencies?.fabric?.status || 'unconfigured'} />
               </div>
               <p style={{ fontSize: '0.75rem', color: 'var(--text-secondary)' }}>
-                {readiness.dependencies?.fabric?.message || 'Fabric peer connection uninitialized'}
+                {readiness.dependencies?.fabric?.message || 'Fabric peer connection uninitialized (Stage 1 Pending)'}
               </p>
             </div>
 
@@ -142,7 +242,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ health, readiness, onNavig
                 <StatusBadge status={readiness.dependencies?.minio?.status || 'unconfigured'} />
               </div>
               <p style={{ fontSize: '0.75rem', color: 'var(--text-secondary)' }}>
-                {readiness.dependencies?.minio?.message || 'MinIO off-chain evidence uninitialized'}
+                {readiness.dependencies?.minio?.message || 'MinIO off-chain evidence uninitialized (Stage 2 Pending)'}
               </p>
             </div>
           </div>
@@ -156,13 +256,13 @@ export const Dashboard: React.FC<DashboardProps> = ({ health, readiness, onNavig
             <ExternalLink size={18} style={{ color: 'var(--accent-cyan)' }} />
             <span>TESSERA Implementation Milestones</span>
           </div>
-          <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>M1 Foundation Active</span>
+          <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>M1 Foundation & Auth Active</span>
         </div>
         <div className="panel-body">
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '1rem' }}>
             <div style={{ borderLeft: '3px solid var(--primary)', paddingLeft: '0.75rem' }}>
-              <div style={{ fontSize: '0.8rem', fontWeight: 700, color: '#ffffff' }}>M1: App Foundation</div>
-              <div style={{ fontSize: '0.75rem', color: 'var(--text-secondary)' }}>React UI & Express API Ready</div>
+              <div style={{ fontSize: '0.8rem', fontWeight: 700, color: '#ffffff' }}>M1: App Foundation & Auth</div>
+              <div style={{ fontSize: '0.75rem', color: 'var(--text-secondary)' }}>React UI, Express API & RBAC Ready</div>
             </div>
             <div style={{ borderLeft: '3px solid var(--border-prominent)', paddingLeft: '0.75rem' }}>
               <div style={{ fontSize: '0.8rem', fontWeight: 700, color: 'var(--text-muted)' }}>M2: Fabric Registry</div>

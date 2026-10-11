@@ -271,6 +271,11 @@ export class LedgerService {
       throw new Error(`Claim '${claimId}' not found`);
     }
 
+    // Maker-checker separation: Claimant cannot verify or approve their own claim
+    if (claim.claimant === reviewer) {
+      throw new Error(`Maker-Checker violation: Claimant '${reviewer}' cannot review their own claim`);
+    }
+
     claim.reviewedAt = Date.now();
     claim.reviewedBy = reviewer;
 
@@ -573,6 +578,24 @@ export class LedgerService {
     const list = Array.from(this.pledges.values());
     if (assetId) return list.filter((p) => p.assetId === assetId);
     return list;
+  }
+
+  public getDashboardStats() {
+    const assets = Array.from(this.assets.values());
+    const registeredAssets = assets.length;
+    const pendingClaims = Array.from(this.claims.values()).filter((c) => c.status === 'SUBMITTED').length;
+    const approvalsQueue = assets.filter((a) => a.status === 'PENDING_VERIFICATION' || a.status === 'VERIFIED').length;
+    const tokenizedHoldings = Array.from(this.tokens.values()).filter((t) => t.status === 'ACTIVE').length;
+
+    return {
+      registeredAssets,
+      pendingClaims,
+      approvalsQueue,
+      tokenizedHoldings,
+      isDemonstrationData: true,
+      fabricLedgerConnected: false,
+      lastUpdated: new Date().toISOString(),
+    };
   }
 }
 

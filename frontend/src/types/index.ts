@@ -192,3 +192,44 @@ export interface SystemReadinessData {
     };
   };
 }
+
+export interface AuthUser {
+  identityId: string;
+  mspId: string;
+  role: BusinessRole;
+  displayName: string;
+}
+
+export interface DemoAccount {
+  username: string;
+  role: BusinessRole;
+  displayName: string;
+  emailAlias?: string;
+}
+
+export interface DashboardStats {
+  registeredAssets: number;
+  pendingClaims: number;
+  approvalsQueue: number;
+  tokenizedHoldings: number;
+  isDemonstrationData: boolean;
+  fabricLedgerConnected: boolean;
+  lastUpdated: string;
+}
+
+export interface SystemComponentHealth {
+  id: string;
+  name: string;
+  status: 'healthy' | 'degraded' | 'unavailable' | 'not_configured' | 'unknown';
+  explanation: string;
+  lastChecked: string;
+  checkType: string;
+  safeRemediationHint: string;
+}
+
+export interface SystemHealthReport {
+  service: string;
+  environment: string;
+  timestamp: string;
+  components: SystemComponentHealth[];
+}

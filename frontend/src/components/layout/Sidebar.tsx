@@ -8,26 +8,70 @@ import {
   Coins,
   ArrowLeftRight,
   ShieldAlert,
-  Settings,
+  Activity,
   Layers,
   LucideIcon,
 } from 'lucide-react';
-import { NavPage, SystemHealthData, SystemReadinessData } from '../../types';
+import { NavPage, BusinessRole, SystemReadinessData } from '../../types';
 
 interface SidebarProps {
   currentPage: NavPage;
   onNavigate: (page: NavPage) => void;
-  health: SystemHealthData;
+  currentRole: BusinessRole;
   readiness: SystemReadinessData;
 }
+
+const ROLE_NAV_PAGES: Record<BusinessRole, NavPage[]> = {
+  ADMINISTRATOR: [
+    'dashboard',
+    'registry',
+    'registration',
+    'verification',
+    'approvals',
+    'tokenization',
+    'transfers',
+    'audit',
+    'settings',
+  ],
+  ISSUER_REGISTRAR: [
+    'dashboard',
+    'registry',
+    'registration',
+    'verification',
+    'approvals',
+  ],
+  VERIFIER: [
+    'dashboard',
+    'verification',
+    'registry',
+    'audit',
+  ],
+  INVESTOR_BUYER: [
+    'dashboard',
+    'registry',
+    'transfers',
+  ],
+  COMPLIANCE_OFFICER: [
+    'dashboard',
+    'registry',
+    'verification',
+    'approvals',
+    'audit',
+  ],
+  AUDITOR: [
+    'dashboard',
+    'registry',
+    'audit',
+  ],
+};
 
 export const Sidebar: React.FC<SidebarProps> = ({
   currentPage,
   onNavigate,
-  health,
+  currentRole,
   readiness,
 }) => {
-  const navItems: { id: NavPage; label: string; icon: LucideIcon }[] = [
+  const allNavItems: { id: NavPage; label: string; icon: LucideIcon }[] = [
     { id: 'dashboard', label: 'Dashboard', icon: LayoutDashboard },
     { id: 'registry', label: 'Asset Registry', icon: Boxes },
     { id: 'registration', label: 'Register Asset', icon: PlusCircle },
@@ -36,11 +80,14 @@ export const Sidebar: React.FC<SidebarProps> = ({
     { id: 'tokenization', label: 'Tokenization', icon: Coins },
     { id: 'transfers', label: 'Transfers & Holdings', icon: ArrowLeftRight },
     { id: 'audit', label: 'Audit & Provenance', icon: ShieldAlert },
-    { id: 'settings', label: 'Network Settings', icon: Settings },
+    { id: 'settings', label: 'System Health', icon: Activity },
   ];
 
-  const isUp = health.status === 'UP';
+  const permittedPages = ROLE_NAV_PAGES[currentRole] || ROLE_NAV_PAGES.ADMINISTRATOR;
+  const visibleNavItems = allNavItems.filter((item) => permittedPages.includes(item.id));
+
   const fabricConnected = readiness.dependencies?.fabric?.connected ?? false;
+  const minioConnected = readiness.dependencies?.minio?.connected ?? false;
 
   return (
     <aside className="sidebar">
@@ -55,8 +102,8 @@ export const Sidebar: React.FC<SidebarProps> = ({
       </div>
 
       <nav className="sidebar-nav">
-        <div className="nav-section-title">Navigation</div>
-        {navItems.map((item) => {
+        <div className="nav-section-title">Navigation • {currentRole.replace('_', ' ')}</div>
+        {visibleNavItems.map((item) => {
           const Icon = item.icon;
           const isActive = currentPage === item.id;
           return (
@@ -72,27 +119,21 @@ export const Sidebar: React.FC<SidebarProps> = ({
         })}
       </nav>
 
+      {/* Sidebar Footer with truthful infrastructure connectivity */}
       <div className="sidebar-footer">
         <div className="fabric-node-info">
-          <div className="node-status-row">
-            <span style={{ color: 'var(--text-muted)' }}>API Server:</span>
-            <span style={{ display: 'flex', alignItems: 'center', gap: 6, fontWeight: 600 }}>
-              <span className={`status-dot ${isUp ? 'green' : 'red'}`} />
-              {health.status}
-            </span>
-          </div>
           <div className="node-status-row">
             <span style={{ color: 'var(--text-muted)' }}>Fabric Gateway:</span>
             <span style={{ display: 'flex', alignItems: 'center', gap: 6, fontWeight: 600 }}>
               <span className={`status-dot ${fabricConnected ? 'green' : 'yellow'}`} />
-              {fabricConnected ? 'Connected' : 'Stage 1 Pending'}
+              {fabricConnected ? 'Connected' : 'Offline (Simulated)'}
             </span>
           </div>
           <div className="node-status-row">
             <span style={{ color: 'var(--text-muted)' }}>Off-Chain Store:</span>
             <span style={{ display: 'flex', alignItems: 'center', gap: 6, fontWeight: 600 }}>
-              <span className="status-dot yellow" />
-              MinIO Pending
+              <span className={`status-dot ${minioConnected ? 'green' : 'yellow'}`} />
+              {minioConnected ? 'MinIO Ready' : 'Local Storage'}
             </span>
           </div>
         </div>

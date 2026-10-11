@@ -1,8 +1,10 @@
 import { Request, Response, NextFunction } from 'express';
+import crypto from 'crypto';
 import jwt from 'jsonwebtoken';
 import { config } from '../config';
 import { AuthUser, BusinessRole, Permission, ROLE_PERMISSIONS } from '../types';
 import { AppError } from './errorHandler';
+import { authService } from '../services/auth.service';
 
 export interface AuthenticatedRequest extends Request {
   user?: AuthUser;
@@ -54,6 +56,7 @@ export function generateToken(user: AuthUser): string {
   }
   return jwt.sign(
     {
+      jti: crypto.randomBytes(16).toString('hex'),
       sub: user.identityId,
       mspId: user.mspId,
       role: user.role,
@@ -73,6 +76,9 @@ export function authenticate(req: AuthenticatedRequest, _res: Response, next: Ne
   }
 
   const token = authHeader.split(' ')[1];
+  if (authService.isTokenRevoked(token)) {
+    return next(new AppError(401, 'TOKEN_REVOKED', 'Authentication token has been revoked or logged out'));
+  }
   try {
     const decoded = jwt.verify(token, config.jwt.secret) as {
       sub: string;

@@ -7,6 +7,7 @@ dotenv.config({ path: path.resolve(process.cwd(), '../.env') });
 
 export interface AppConfig {
   env: 'development' | 'production' | 'test';
+  demoAuthEnabled: boolean;
   port: number;
   corsAllowedOrigins: string[];
   logLevel: 'debug' | 'info' | 'warn' | 'error';
@@ -127,8 +128,14 @@ export function loadConfig(): AppConfig {
   if (!isPlaceholderOrEmpty(process.env.INSURANCE_SERVICE_API_URL)) activeAdapters++;
   if (!isPlaceholderOrEmpty(process.env.INSPECTION_SERVICE_API_URL)) activeAdapters++;
 
+  // Demo Authentication mode: forbidden in production
+  const isProduction = env === 'production';
+  const rawDemoAuth = process.env.DEMO_AUTH_ENABLED;
+  const demoAuthEnabled = !isProduction && (rawDemoAuth === 'true' || rawDemoAuth === undefined);
+
   return {
     env,
+    demoAuthEnabled,
     port: isNaN(port) ? 3000 : port,
     corsAllowedOrigins,
     logLevel,

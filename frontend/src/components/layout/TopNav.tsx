@@ -1,31 +1,20 @@
 import React from 'react';
-import { Shield, User, RefreshCw, Server } from 'lucide-react';
-import { BusinessRole, SystemHealthData } from '../../types';
+import { Shield, User, RefreshCw, Server, LogOut } from 'lucide-react';
+import { AuthUser } from '../../types';
 
 interface TopNavProps {
-  currentRole: BusinessRole;
-  onRoleChange: (role: BusinessRole) => void;
-  health: SystemHealthData;
+  user: AuthUser | null;
+  onLogout: () => void;
   onRefresh: () => void;
   isRefreshing: boolean;
 }
 
 export const TopNav: React.FC<TopNavProps> = ({
-  currentRole,
-  onRoleChange,
-  health,
+  user,
+  onLogout,
   onRefresh,
   isRefreshing,
 }) => {
-  const roles: { value: BusinessRole; label: string }[] = [
-    { value: 'ADMINISTRATOR', label: 'Administrator' },
-    { value: 'ISSUER_REGISTRAR', label: 'Asset Registrar' },
-    { value: 'VERIFIER', label: 'Independent Verifier' },
-    { value: 'INVESTOR_BUYER', label: 'Investor / Buyer' },
-    { value: 'COMPLIANCE_OFFICER', label: 'Compliance Officer' },
-    { value: 'AUDITOR', label: 'Auditor' },
-  ];
-
   return (
     <header className="top-nav">
       <div className="nav-left-badge">
@@ -43,45 +32,73 @@ export const TopNav: React.FC<TopNavProps> = ({
         <button
           className="btn btn-secondary"
           onClick={onRefresh}
-          title="Refresh Backend Readiness"
+          title="Refresh Backend Readiness & Health"
           style={{ padding: '0.35rem 0.65rem', fontSize: '0.75rem' }}
         >
           <RefreshCw size={13} className={isRefreshing ? 'spin' : ''} />
           <span>Status</span>
         </button>
 
-        <div className="role-selector-wrap">
-          <User size={14} style={{ color: 'var(--primary)' }} />
-          <span>Active Role:</span>
-          <select
-            className="role-select"
-            value={currentRole}
-            onChange={(e) => onRoleChange(e.target.value as BusinessRole)}
+        {/* Authenticated Identity & Server-Derived Role Badge */}
+        {user && (
+          <div
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: 8,
+              padding: '0.3rem 0.75rem',
+              borderRadius: 8,
+              background: 'var(--bg-elevated)',
+              border: '1px solid var(--border-subtle)',
+            }}
           >
-            {roles.map((r) => (
-              <option key={r.value} value={r.value}>
-                {r.label}
-              </option>
-            ))}
-          </select>
-        </div>
+            <div
+              style={{
+                width: 24,
+                height: 24,
+                borderRadius: '50%',
+                background: 'rgba(37, 99, 235, 0.2)',
+                color: 'var(--primary)',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+              }}
+            >
+              <User size={13} />
+            </div>
+            <div style={{ display: 'flex', flexDirection: 'column', lineHeight: 1.2 }}>
+              <span style={{ fontSize: '0.78rem', fontWeight: 600, color: '#ffffff' }}>
+                {user.displayName.split('(')[0].trim()}
+              </span>
+              <span
+                style={{
+                  fontSize: '0.65rem',
+                  fontWeight: 700,
+                  color: 'var(--accent-cyan)',
+                  letterSpacing: '0.04em',
+                }}
+              >
+                {user.role}
+              </span>
+            </div>
+          </div>
+        )}
 
-        <div
+        {/* Secure Sign Out Button */}
+        <button
+          className="btn btn-secondary"
+          onClick={onLogout}
+          title="Sign out and revoke session token"
           style={{
-            fontSize: '0.75rem',
             padding: '0.35rem 0.65rem',
-            borderRadius: 6,
-            background: health.status === 'UP' ? 'rgba(16, 185, 129, 0.1)' : 'rgba(239, 68, 68, 0.1)',
-            color: health.status === 'UP' ? 'var(--success)' : 'var(--danger)',
-            border: `1px solid ${health.status === 'UP' ? 'rgba(16, 185, 129, 0.25)' : 'rgba(239, 68, 68, 0.25)'}`,
-            display: 'flex',
-            alignItems: 'center',
-            gap: 5,
+            fontSize: '0.75rem',
+            color: '#f87171',
+            borderColor: 'rgba(239, 68, 68, 0.3)',
           }}
         >
-          <span className={`status-dot ${health.status === 'UP' ? 'green' : 'red'}`} />
-          <span>API: {health.status}</span>
-        </div>
+          <LogOut size={13} />
+          <span>Sign Out</span>
+        </button>
       </div>
     </header>
   );

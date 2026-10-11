@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { Sidebar } from './components/layout/Sidebar';
 import { TopNav } from './components/layout/TopNav';
+import { LoginPage } from './pages/LoginPage';
 import { Dashboard } from './pages/Dashboard';
 import { AssetRegistryPage } from './pages/AssetRegistryPage';
 import { AssetRegistrationPage } from './pages/AssetRegistrationPage';
@@ -10,17 +11,24 @@ import { TokenizationPage } from './pages/TokenizationPage';
 import { TransfersPage } from './pages/TransfersPage';
 import { AuditPage } from './pages/AuditPage';
 import { SettingsPage } from './pages/SettingsPage';
-import { fetchHealth, fetchReadiness, loginAsRole } from './services/api';
+import {
+  fetchHealth,
+  fetchReadiness,
+  getStoredUser,
+  getAuthToken,
+  logout,
+  fetchCurrentUser,
+} from './services/api';
 import {
   NavPage,
-  BusinessRole,
+  AuthUser,
   SystemHealthData,
   SystemReadinessData,
 } from './types';
 
 export const App: React.FC = () => {
+  const [user, setUser] = useState<AuthUser | null>(() => getStoredUser());
   const [currentPage, setCurrentPage] = useState<NavPage>('dashboard');
-  const [currentRole, setCurrentRole] = useState<BusinessRole>('ADMINISTRATOR');
   const [isRefreshing, setIsRefreshing] = useState(false);
 
   const [health, setHealth] = useState<SystemHealthData>({
@@ -54,49 +62,68 @@ export const App: React.FC = () => {
     }
   }, []);
 
-  const handleRoleChange = useCallback(async (newRole: BusinessRole) => {
-    setCurrentRole(newRole);
-    try {
-      await loginAsRole(newRole);
-    } catch (err) {
-      console.warn('Failed to switch JWT token for role:', newRole, err);
-    }
-  }, []);
-
+  // Verify existing token on initial load
   useEffect(() => {
     loadStatus();
-    // Initialize token for default role
-    handleRoleChange('ADMINISTRATOR');
+    const token = getAuthToken();
+    if (token) {
+      fetchCurrentUser()
+        .then((res) => {
+          setUser(res.user);
+        })
+        .catch(() => {
+          // Token expired or invalid: clear session
+          setUser(null);
+        });
+    }
+
     const interval = setInterval(loadStatus, 15000);
     return () => clearInterval(interval);
-  }, [loadStatus, handleRoleChange]);
+  }, [loadStatus]);
+
+  const handleLoginSuccess = (authUser: AuthUser) => {
+    setUser(authUser);
+    setCurrentPage('dashboard');
+  };
+
+  const handleLogout = async () => {
+    await logout();
+    setUser(null);
+    setCurrentPage('dashboard');
+  };
+
+  // If user is not authenticated, display enterprise LoginPage
+  if (!user) {
+    return <LoginPage onLoginSuccess={handleLoginSuccess} />;
+  }
 
   const renderPage = () => {
+    // Role-based route guard: ensure users cannot accidentally see pages they lack rights to
     switch (currentPage) {
       case 'dashboard':
         return <Dashboard health={health} readiness={readiness} onNavigate={setCurrentPage} />;
       case 'registry':
         return <AssetRegistryPage onNavigate={setCurrentPage} />;
       case 'registration':
+        if (user.role !== 'ISSUER_REGISTRAR' && user.role !== 'ADMINISTRATOR') {
+          return <Dashboard health={health} readiness={readiness} onNavigate={setCurrentPage} />;
+        }
         return <AssetRegistrationPage onNavigate={setCurrentPage} />;
       case 'verification':
         return <VerificationPage />;
       case 'approvals':
         return <ApprovalsPage />;
       case 'tokenization':
+        if (user.role !== 'ADMINISTRATOR') {
+          return <Dashboard health={health} readiness={readiness} onNavigate={setCurrentPage} />;
+        }
         return <TokenizationPage />;
       case 'transfers':
         return <TransfersPage />;
       case 'audit':
         return <AuditPage />;
       case 'settings':
-        return (
-          <SettingsPage
-            readiness={readiness}
-            currentRole={currentRole}
-            onRoleChange={handleRoleChange}
-          />
-        );
+        return <SettingsPage readiness={readiness} currentRole={user.role} />;
       default:
         return <Dashboard health={health} readiness={readiness} onNavigate={setCurrentPage} />;
     }
@@ -107,14 +134,13 @@ export const App: React.FC = () => {
       <Sidebar
         currentPage={currentPage}
         onNavigate={setCurrentPage}
-        health={health}
+        currentRole={user.role}
         readiness={readiness}
       />
       <div className="main-layout">
         <TopNav
-          currentRole={currentRole}
-          onRoleChange={handleRoleChange}
-          health={health}
+          user={user}
+          onLogout={handleLogout}
           onRefresh={loadStatus}
           isRefreshing={isRefreshing}
         />
